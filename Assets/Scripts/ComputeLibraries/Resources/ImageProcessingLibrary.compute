@@ -1,0 +1,21 @@
+﻿#pragma kernel ApplyImageKernel
+
+StructuredBuffer<float> inputData;      
+StructuredBuffer<float> imageKernel;         // assumed to have 9 elements
+RWStructuredBuffer<float> result;
+
+uint2 resolution;
+
+[numthreads(8, 8, 1)]
+void ApplyImageKernel (uint3 id : SV_DispatchThreadID)
+{
+    float sum = 0;
+    for (uint i = 0; i < 9; i++)
+    {
+        int2 displacement = int2((i % 3) - 1, i / 3);
+        uint neighborX = (id.x + displacement.x + resolution.x) % resolution.x;
+        uint neighborY = (id.y + displacement.y + resolution.y) % resolution.y;
+        sum += inputData[neighborX + neighborY * resolution.x] * imageKernel[i];
+    }
+    result[id.x + id.y * resolution.x] = sum;
+}

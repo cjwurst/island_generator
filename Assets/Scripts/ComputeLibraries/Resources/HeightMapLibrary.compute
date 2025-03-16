@@ -1,0 +1,65 @@
+﻿#pragma kernel CombineCurves
+
+StructuredBuffer<float> edgeDistances;
+StructuredBuffer<float> edgeHeightCurve;
+StructuredBuffer<float> faultDistances;
+StructuredBuffer<float> edgeFaultCurve;
+StructuredBuffer<float> noise;
+StructuredBuffer<float> edgeNoiseCurve;
+RWStructuredBuffer<float> heights;
+
+float2 edgeBounds;
+float2 faultBounds;
+float2 noiseBounds;
+float edgeDistanceCoefficient;
+float faultDistanceCoefficient;
+float noiseDistanceCoefficient;
+
+uint resolutionWidth;
+
+float Normalize(float value, float2 bounds, float2 targetBounds)
+{
+    float normRange = bounds.y - bounds.x;
+    float targetRange = targetBounds.y - targetBounds.x;
+    float targetValue = (value - bounds.x) / normRange;
+    targetValue *= targetRange;
+    targetValue += targetBounds.x;
+    return targetValue;
+}
+
+float EvaluateCurve(StructuredBuffer<float> curve, float input)
+{
+    uint intervalCount;
+    uint _;
+    curve.GetDimensions(intervalCount, _);
+    intervalCount--;
+    return intervalCount * round(input / intervalCount);
+}
+
+[numthreads(8,8,1)]
+void CombineCurves (uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x + id.y * resolutionWidth;
+    float2 defaultBounds = float2(0, 1);
+    float2 targetBounds = float2(-1, 1);
+    
+    float adjustedEdgeDistance = 0;
+    /*int edgeSignInt = (sign(edgeDistances[index]) + 1) / 2;         // 0 if *edgeDistances[index]* is negative; 1 if positive
+    int edgeSignComplimentInt = 1 - edgeSignInt;
+    float2 currentEdgeBounds = float2(edgeSignComplimentInt * edgeBounds.x, edgeSignInt * edgeBounds.y);
+    float halfEdgeSignInt = edgeSignInt / 2;
+    float2 targetEdgeBounds = float2(0 + halfEdgeSignInt, 0.5 + halfEdgeSignInt);
+    adjustedEdgeDistance = Normalize(edgeDistances[index], currentEdgeBounds, targetEdgeBounds);*/
+    if (edgeDistances[index] > 0) adjustedEdgeDistance = Normalize(edgeDistances[index], float2(0, edgeBounds.y), float2(0.5, 1));
+    else adjustedEdgeDistance = Normalize(edgeDistances[index], float2(edgeBounds.x, 0), float2(0, 0.5));
+    
+    float adjustedFaultDistance = EvaluateCurve(edgeFaultCurve, adjustedEdgeDistance) * Normalize(faultDistances[index], faultBounds, targetBounds);
+    
+    float adjustedNoise = EvaluateCurve(edgeNoiseCurve, adjustedEdgeDistance) * Normalize(noise[index], noiseBounds, targetBounds);
+    
+    adjustedEdgeDistance = EvaluateCurve(edgeHeightCurve, adjustedEdgeDistance);
+    adjustedFaultDistance = Normalize(adjustedFaultDistance, targetBounds, defaultBounds);
+    adjustedNoise = Normalize(adjustedNoise, targetBounds, defaultBounds);
+    
+    heights[index] = edgeDistanceCoefficient * adjustedEdgeDistance + faultDistanceCoefficient * adjustedFaultDistance + noiseDistanceCoefficient * adjustedNoise;
+}

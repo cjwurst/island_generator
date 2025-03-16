@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f63b9a392c8ed52429e096ce18d78150, type: 3}
+  m_Name: TestStatBlock
+  m_EditorClassIdentifier: 
+  baseStr: 5
+  strDeviation: 0
+  baseDex: 5
+  dexDeviation: 0
+  baseInt: 5
+  intDeviation: 0
+  baseWis: 5
+  wisDeviation: 0
+  baseHP: 16
+  hpDeviation: 0
+  baseAP: 4
+  apDeviation: 0
+  conditionImmunities: []

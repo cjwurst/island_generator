@@ -1,0 +1,37 @@
+﻿#pragma kernel LinearNearestNeighborSearch
+
+StructuredBuffer<float2> candidatePositions;
+RWStructuredBuffer<uint> result;
+RWStructuredBuffer<float> distances;
+
+uint resolutionWidth;
+
+float GetDistance(float2 a, float2 b)
+{
+	float differenceX = a[0] - b[0];
+	float differenceY = a[1] - b[1];
+	return sqrt(differenceX * differenceX + differenceY * differenceY);
+}
+
+[numthreads(8, 8, 1)]
+void LinearNearestNeighborSearch (uint3 id : SV_DispatchThreadID)
+{
+	uint candidateCount;
+	uint _;
+	candidatePositions.GetDimensions(candidateCount, _);
+	uint bestCandidateIndex = 0;
+	float leastDistance = GetDistance(candidatePositions[0], id.xy);
+	for (uint i = 1; i < candidateCount; i++)
+	{
+		float distance = GetDistance(candidatePositions[i], id.xy);
+		if (distance < leastDistance)
+		{
+			bestCandidateIndex = i;
+			leastDistance = distance;
+		}
+	}
+    uint j = id.x + id.y * resolutionWidth;
+	result[j] = bestCandidateIndex;
+    distances[j] = leastDistance;
+}
+
